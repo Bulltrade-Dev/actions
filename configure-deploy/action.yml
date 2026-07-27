@@ -11,7 +11,7 @@ runs:
       shell: bash
       env:
         GPG_KEY: ${{ inputs.gpg-secret-key }}
-      run: printf '%s' "$GPG_KEY" | base64 -d | gpg --batch --import
+      run: printf '%s' "$GPG_KEY" | gpg --import
     - name: Install helm-secrets plugin
       shell: bash
       run: helm plugin install https://github.com/jkroepke/helm-secrets --version v4.6.4 2>/dev/null || true
