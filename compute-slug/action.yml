@@ -1,0 +1,36 @@
+name: Compute Review Slug
+inputs:
+  branch:
+    description: Branch name to slugify
+    required: true
+  namespace-prefix:
+    description: 'Kubernetes namespace prefix, e.g. gamelight'
+    required: true
+  domain-suffix:
+    description: 'Domain suffix, e.g. .gamelight.ru'
+    required: true
+outputs:
+  slug:
+    value: ${{ steps.slug.outputs.slug }}
+  namespace:
+    value: ${{ steps.slug.outputs.namespace }}
+  domain:
+    value: ${{ steps.slug.outputs.domain }}
+runs:
+  using: composite
+  steps:
+    - id: slug
+      shell: bash
+      env:
+        BRANCH: ${{ inputs.branch }}
+        NAMESPACE_PREFIX: ${{ inputs.namespace-prefix }}
+        DOMAIN_SUFFIX: ${{ inputs.domain-suffix }}
+      run: |
+        SLUG=$(echo "$BRANCH" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/-\+/-/g' | sed 's/^-//;s/-$//')
+        if [ ${#SLUG} -gt 24 ]; then
+          HASH=$(printf '%s' "$SLUG" | sha256sum | cut -c1-8)
+          SLUG="${SLUG:0:15}"; SLUG="${SLUG%-}-$HASH"
+        fi
+        echo "slug=$SLUG" >> $GITHUB_OUTPUT
+        echo "namespace=${NAMESPACE_PREFIX}-${SLUG}" >> $GITHUB_OUTPUT
+        echo "domain=${SLUG}${DOMAIN_SUFFIX}" >> $GITHUB_OUTPUT

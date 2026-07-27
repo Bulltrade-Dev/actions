@@ -1,0 +1,28 @@
+name: Post Review URL to PR
+inputs:
+  url:
+    required: true
+  pr-number:
+    required: true
+  repo:
+    required: true
+  token:
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Post review URL comment (once)
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        URL: ${{ inputs.url }}
+        PR_NUMBER: ${{ inputs.pr-number }}
+        REPO: ${{ inputs.repo }}
+      run: |
+        existing=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+          --jq '[.[] | select(.body | startswith("<!-- review-url -->"))] | length')
+        if [[ "$existing" == "0" ]]; then
+          gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+            --method POST \
+            --field body="<!-- review-url -->"$'\n'"$URL"
+        fi

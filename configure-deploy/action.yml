@@ -1,0 +1,22 @@
+name: Configure Deploy
+inputs:
+  environment:
+    required: true
+  gpg-secret-key:
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Import GPG key
+      shell: bash
+      env:
+        GPG_KEY: ${{ inputs.gpg-secret-key }}
+      run: printf '%s' "$GPG_KEY" | base64 -d | gpg --batch --import
+    - name: Install helm-secrets plugin
+      shell: bash
+      run: helm plugin install https://github.com/jkroepke/helm-secrets --version v4.6.4 2>/dev/null || true
+    - name: Decrypt secrets
+      shell: bash
+      env:
+        ENVIRONMENT: ${{ inputs.environment }}
+      run: scripts/decrypt_secrets.sh "$ENVIRONMENT"
