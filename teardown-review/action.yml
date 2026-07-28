@@ -1,0 +1,25 @@
+name: Teardown Review Environment
+inputs:
+  kubeconfig:
+    required: true
+  release-name:
+    required: true
+  namespace:
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Uninstall release and delete namespace
+      shell: bash
+      env:
+        KUBECONFIG_DATA: ${{ inputs.kubeconfig }}
+        RELEASE_NAME: ${{ inputs.release-name }}
+        NAMESPACE: ${{ inputs.namespace }}
+      run: |
+        KUBECONFIG=$(mktemp -p /dev/shm kubeconfig.XXXXXX 2>/dev/null || mktemp)
+        chmod 600 "$KUBECONFIG"
+        trap "rm -f '$KUBECONFIG'" EXIT
+        printf '%s' "$KUBECONFIG_DATA" | base64 -d > "$KUBECONFIG"
+        export KUBECONFIG
+        nelm release uninstall -r "$RELEASE_NAME" -n "$NAMESPACE" || true
+        kubectl delete namespace "$NAMESPACE" --ignore-not-found
