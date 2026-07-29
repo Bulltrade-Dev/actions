@@ -37,7 +37,19 @@ runs:
     - uses: docker/build-push-action@v6
       with:
         context: ${{ inputs.context }}
-        push: true
+        push: false
+        load: true
         tags: ${{ steps.meta.outputs.image }}
         build-args: |
           CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX=${{ inputs.registry-proxy }}/library
+    - shell: bash
+      env:
+        IMAGE: ${{ steps.meta.outputs.image }}
+      run: |
+        for i in 1 2 3 4 5; do
+          docker push "$IMAGE" && exit 0
+          echo "push attempt $i failed, retrying in $((i * 10))s..."
+          sleep $((i * 10))
+        done
+        echo "all push attempts failed"
+        exit 1
