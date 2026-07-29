@@ -1,0 +1,45 @@
+name: Helm Release
+inputs:
+  release-name:
+    required: true
+  namespace:
+    required: true
+  environment:
+    required: true
+  kubeconfig:
+    required: true
+  domain:
+    required: false
+    default: ''
+  extra-set-args:
+    required: false
+    default: ''
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        KUBECONFIG_DATA: ${{ inputs.kubeconfig }}
+        RELEASE_NAME: ${{ inputs.release-name }}
+        NAMESPACE: ${{ inputs.namespace }}
+        ENVIRONMENT: ${{ inputs.environment }}
+        DOMAIN: ${{ inputs.domain }}
+        EXTRA_SET: ${{ inputs.extra-set-args }}
+      run: |
+        KUBECONFIG=$(mktemp -p /dev/shm kubeconfig.XXXXXX 2>/dev/null || mktemp)
+        chmod 600 "$KUBECONFIG"
+        trap "rm -f '$KUBECONFIG'" EXIT
+        printf '%s' "$KUBECONFIG_DATA" | base64 -d > "$KUBECONFIG"
+        export KUBECONFIG
+        nelm release install \
+          --auto-rollback \
+          --namespace "$NAMESPACE" \
+          --release "$RELEASE_NAME" \
+          --timeout 40m \
+          --values .helm/values.yaml \
+          --values .helm/secrets.yaml.dec \
+          --values ".helm/environments/$ENVIRONMENT/values.yaml" \
+          --values ".helm/environments/$ENVIRONMENT/secrets.yaml.dec" \
+          ${DOMAIN:+--set "ingress.hostname=$DOMAIN"} \
+          $EXTRA_SET \
+          .helm

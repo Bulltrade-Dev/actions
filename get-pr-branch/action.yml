@@ -1,0 +1,33 @@
+name: Get PR Branch
+inputs:
+  token:
+    required: true
+  head-ref:
+    required: false
+    default: ''
+  pr-number:
+    required: false
+    default: ''
+  repo:
+    required: false
+    default: ''
+outputs:
+  branch:
+    value: ${{ steps.get.outputs.branch }}
+runs:
+  using: composite
+  steps:
+    - id: get
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        HEAD_REF: ${{ inputs.head-ref }}
+        PR_NUMBER: ${{ inputs.pr-number }}
+        REPO: ${{ inputs.repo }}
+      run: |
+        if [[ -n "$HEAD_REF" ]]; then
+          echo "branch=$HEAD_REF" >> "$GITHUB_OUTPUT"
+        else
+          branch=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.head.ref')
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+        fi

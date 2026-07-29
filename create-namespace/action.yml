@@ -1,0 +1,41 @@
+name: Create Review Namespace
+inputs:
+  slug:
+    required: true
+  namespace:
+    required: true
+  kubeconfig:
+    required: true
+  merge-request-url:
+    required: false
+    default: ''
+  merge-request-id:
+    required: false
+    default: ''
+  project-id:
+    required: false
+    default: ''
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        KUBECONFIG_DATA: ${{ inputs.kubeconfig }}
+        SLUG: ${{ inputs.slug }}
+        NAMESPACE: ${{ inputs.namespace }}
+        MR_URL: ${{ inputs.merge-request-url }}
+        MR_ID: ${{ inputs.merge-request-id }}
+        PROJECT_ID: ${{ inputs.project-id }}
+      run: |
+        KUBECONFIG=$(mktemp -p /dev/shm kubeconfig.XXXXXX 2>/dev/null || mktemp)
+        chmod 600 "$KUBECONFIG"
+        trap "rm -f '$KUBECONFIG'" EXIT
+        printf '%s' "$KUBECONFIG_DATA" | base64 -d > "$KUBECONFIG"
+        export KUBECONFIG
+        if ! kubectl get namespace "$NAMESPACE" > /dev/null 2>&1; then
+          kubectl create namespace "$NAMESPACE"
+          kubectl annotate namespace "$NAMESPACE" \
+            github.com/pull-request-url="$MR_URL" \
+            github.com/pull-request-id="$MR_ID" \
+            github.com/project-id="$PROJECT_ID"
+        fi
