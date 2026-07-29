@@ -19,10 +19,17 @@ runs:
         PR_NUMBER: ${{ inputs.pr-number }}
         REPO: ${{ inputs.repo }}
       run: |
-        existing=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
-          --jq '[.[] | select(.body | startswith("<!-- review-url -->"))] | length')
+        existing=$(curl -sSf \
+          -H "Authorization: Bearer $GH_TOKEN" \
+          -H "Accept: application/vnd.github+json" \
+          "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments" \
+          | jq '[.[] | select(.body | startswith("<!-- review-url -->"))] | length')
         if [[ "$existing" == "0" ]]; then
-          gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
-            --method POST \
-            --field body="<!-- review-url -->"$'\n'"$URL"
+          curl -sSf \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d "{\"body\":\"<!-- review-url -->\n$URL\"}" \
+            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments"
         fi
