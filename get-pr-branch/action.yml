@@ -28,6 +28,10 @@ runs:
         if [[ -n "$HEAD_REF" ]]; then
           echo "branch=$HEAD_REF" >> "$GITHUB_OUTPUT"
         else
-          branch=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.head.ref')
+          branch=$(curl -sSf \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER" \
+            | jq -r '.head.ref')
           echo "branch=$branch" >> "$GITHUB_OUTPUT"
         fi
