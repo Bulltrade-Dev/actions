@@ -23,7 +23,11 @@ runs:
   steps:
     - id: meta
       shell: bash
-      run: echo "image=${{ inputs.registry }}/${{ inputs.image-path }}:${GITHUB_SHA:0:8}" >> $GITHUB_OUTPUT
+      env:
+        PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: |
+        SHA="${PR_HEAD_SHA:-$GITHUB_SHA}"
+        echo "image=${{ inputs.registry }}/${{ inputs.image-path }}:${SHA:0:8}" >> $GITHUB_OUTPUT
     - uses: docker/login-action@v3
       with:
         registry: ${{ inputs.registry }}
