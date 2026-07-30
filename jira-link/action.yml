@@ -32,12 +32,17 @@ runs:
         REPO: ${{ inputs.repo }}
       run: |
         match=$(echo "$PR_BRANCH $PR_TITLE" | grep -oiE "${KEY}-[0-9]+" | head -1 | tr '[:lower:]' '[:upper:]' || true)
+        if echo "$PR_BODY" | head -1 | grep -q '^\*\*Jira:\*\*'; then
+          stripped_body=$(echo "$PR_BODY" | tail -n +3)
+        else
+          stripped_body="$PR_BODY"
+        fi
         [[ -z "$match" ]] && exit 0
         url="${BASE_URL}/${match}"
-        if echo "$PR_BODY" | grep -qF "$url"; then exit 0; fi
+        if echo "$stripped_body" | grep -qF "$url"; then exit 0; fi
         link="**Jira:** [${match}](${url})"
-        if [[ -n "$PR_BODY" ]]; then
-          new_body="${link}"$'\n\n'"${PR_BODY}"
+        if [[ -n "$stripped_body" ]]; then
+          new_body="${link}"$'\n\n'"${stripped_body}"
         else
           new_body="$link"
         fi
